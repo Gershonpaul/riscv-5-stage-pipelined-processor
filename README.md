@@ -160,3 +160,10 @@ Waveforms (`sim/waveforms/`):
 
 Apache License 2.0 (see `LICENSE`). Original design copyright 2023 MERL-DSU.
 
+
+## Additional simulation screenshots
+
+![Result 1](sim/waveforms/result_1.png)
+![Waveform 1](sim/waveforms/waveforms_1.png)
+![Waveform 2](sim/waveforms/waveforms_2.png)
+![Waveform 3](sim/waveforms/waveforms_3.png)

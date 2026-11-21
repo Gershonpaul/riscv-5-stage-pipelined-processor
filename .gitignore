@@ -1,0 +1,10 @@
+*.vcd
+*.vvp
+*.out
+*.log
+*.jou
+.Xil/
+*.cache/
+*.runs/
+*.sim/
+*.hw/

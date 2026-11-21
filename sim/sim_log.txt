@@ -1,0 +1,18 @@
+WARNING: ..\rtl/Instruction_Memory.v:26: $readmemh: The behaviour for reg[...] mem[N:0]; $readmemh("...", mem); changed in the 1364-2005 standard. To avoid ambiguity, use mem[0:N] or explicit range parameters $readmemh("...", mem, start, stop);. Defaulting to 1364-2005 behavior.
+VCD info: dumpfile dump.vcd opened for output.
+==== Simulation start ====
+[t=650000] WRITEBACK: x5 <= 5 (0x00000005)
+[t=750000] WRITEBACK: x6 <= 3 (0x00000003)
+[t=850000] WRITEBACK: x7 <= 8 (0x00000008)
+[t=950000] WRITEBACK: x8 <= 0 (0x00000000)
+[t=1050000] WRITEBACK: x9 <= 1 (0x00000001)
+[t=1150000] WRITEBACK: x10 <= 1 (0x00000001)
+==== Final register check ====
+PASS: x5 = 5 (expected 5)
+PASS: x6 = 3 (expected 3)
+PASS: x7 = 8 (expected 8)
+PASS: x8 = 0 (expected 0)
+PASS: x9 = 1 (expected 1)
+PASS: x10 = 1 (expected 1)
+==== RESULT: ALL TESTS PASSED ====
+..\tb\pipeline_results_tb.v:65: $finish called at 1300000 (1ps)

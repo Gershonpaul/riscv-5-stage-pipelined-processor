@@ -61,8 +61,9 @@ module fetch_cycle(clk, rst, PCSrcE, PCTargetE, InstrD, PCD, PCPlus4D);
                 );
 
     // Fetch Cycle Register Logic
+    // Modified by Gershon Paul Kolanti, Nov 2026: flush on taken branch
     always @(posedge clk or negedge rst) begin
-        if(rst == 1'b0) begin
+        if(rst == 1'b0 || PCSrcE == 1'b1) begin
             InstrF_reg <= 32'h00000000;
             PCF_reg <= 32'h00000000;
             PCPlus4F_reg <= 32'h00000000;

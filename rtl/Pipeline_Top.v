@@ -79,7 +79,8 @@ module Pipeline_top(clk, rst);
                         .PCE(PCE), 
                         .PCPlus4E(PCPlus4E),
                         .RS1_E(RS1_E),
-                        .RS2_E(RS2_E)
+                        .RS2_E(RS2_E),
+                        .PCSrcE(PCSrcE)
                     );
 
     // Execute Stage

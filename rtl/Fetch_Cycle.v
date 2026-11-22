@@ -12,17 +12,19 @@
 //    See the License for the specific language governing permissions and
 //    limitations under the License.
 
-module fetch_cycle(clk, rst, PCSrcE, PCTargetE, InstrD, PCD, PCPlus4D);
+module fetch_cycle(clk, rst, PCSrcE, PCTargetE, InstrD, PCD, PCPlus4D, StallD);
 
     // Declare input & outputs
     input clk, rst;
     input PCSrcE;
+    input StallD; // Modified by Gershon Paul Kolanti, Nov 2026: load-use stall input
     input [31:0] PCTargetE;
     output [31:0] InstrD;
     output [31:0] PCD, PCPlus4D;
 
     // Declaring interim wires
     wire [31:0] PC_F, PCF, PCPlus4F;
+    wire [31:0] PC_Next;
     wire [31:0] InstrF;
 
     // Declaration of Register
@@ -38,12 +40,15 @@ module fetch_cycle(clk, rst, PCSrcE, PCTargetE, InstrD, PCD, PCPlus4D);
                 .c(PC_F)
                 );
 
+    // Modified by Gershon Paul Kolanti, Nov 2026: on a load-use stall the PC keeps its value
+    Mux PC_STALL_MUX (.a(PC_F), .b(PCF), .s(StallD), .c(PC_Next));
+
     // Declare PC Counter
     PC_Module Program_Counter (
                 .clk(clk),
                 .rst(rst),
                 .PC(PCF),
-                .PC_Next(PC_F)
+                .PC_Next(PC_Next)
                 );
 
     // Declare Instruction Memory
@@ -69,9 +74,9 @@ module fetch_cycle(clk, rst, PCSrcE, PCTargetE, InstrD, PCD, PCPlus4D);
             PCPlus4F_reg <= 32'h00000000;
         end
         else begin
-            InstrF_reg <= InstrF;
-            PCF_reg <= PCF;
-            PCPlus4F_reg <= PCPlus4F;
+            if (StallD != 1'b1) InstrF_reg <= InstrF; // Modified by Gershon Paul Kolanti: hold on stall
+            if (StallD != 1'b1) PCF_reg <= PCF;
+            if (StallD != 1'b1) PCPlus4F_reg <= PCPlus4F;
         end
     end
 

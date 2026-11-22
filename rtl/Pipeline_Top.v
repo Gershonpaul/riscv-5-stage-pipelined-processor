@@ -42,11 +42,21 @@ module Pipeline_top(clk, rst);
     wire [31:0] PCPlus4W, ALU_ResultW, ReadDataW;
     wire [4:0] RS1_E, RS2_E;
     wire [1:0] ForwardBE, ForwardAE;
+
+    // Modified by Gershon Paul Kolanti, Nov 2026: load-use hazard detection.
+    // A load in execute (ResultSrcE=1) whose destination is a source of the instruction
+    // in decode cannot be forwarded in time, so the pipeline stalls for one cycle.
+    wire StallD;
+    wire UsesRs2D;
+    assign UsesRs2D = (InstrD[6:0] == 7'b0110011) | (InstrD[6:0] == 7'b0100011) | (InstrD[6:0] == 7'b1100011);
+    assign StallD = (ResultSrcE == 1'b1) && (RD_E != 5'h00) &&
+                    ((RD_E == InstrD[19:15]) || ((RD_E == InstrD[24:20]) && (UsesRs2D == 1'b1)));
     
 
     // Module Initiation
     // Fetch Stage
     fetch_cycle Fetch (
+                        .StallD(StallD),
                         .clk(clk), 
                         .rst(rst), 
                         .PCSrcE(PCSrcE), 
@@ -58,6 +68,7 @@ module Pipeline_top(clk, rst);
 
     // Decode Stage
     decode_cycle Decode (
+                        .StallD(StallD),
                         .clk(clk), 
                         .rst(rst), 
                         .InstrD(InstrD), 

@@ -1,167 +1,118 @@
-\# 5-Stage Pipelined RISC-V Processor (Verilog) - Simulation and Verification
-
-
+# 5-Stage Pipelined RISC-V Processor (Verilog): Verification and Hazard Handling
 
 A 32-bit RISC-V (RV32I subset) processor with a classic 5-stage pipeline (IF, ID, EX, MEM, WB), written in Verilog.
+This repository contains the core, four self-checking testbenches, simulation logs and waveforms, and the bug fixes and hazard handling I added.
 
+## Credits
 
+The base RTL design is the open-source core by **MERL-DSU** (Apache License 2.0): https://github.com/merldsu/RISCV_Pipeline_Core
 
-\## Credits
+All original copyright headers are kept. Every change I made is marked with a `Modified by Gershon Paul Kolanti` comment below the original header.
 
+## My contribution
 
+- Set up the toolchain (Icarus Verilog, GTKWave, Git) and ran the design from scratch
+- Wrote **four self-checking testbenches** that log every write-back and check the final register values (PASS/FAIL)
+- Found and fixed **two bugs** in the original core (branch immediate, register file write-through)
+- Added **branch flush** and **load-use stall**
+- Analyzed the waveforms, including data forwarding, and documented the design and its limitations
 
-The RTL design in `rtl/` is the open-source core by \*\*MERL-DSU\*\* (Apache License 2.0), taken from: https://github.com/merldsu/RISCV\_Pipeline\_Core
+## Architecture
 
-
-
-All original copyright headers are kept in the source files.
-
-
-
-\## My contribution
-
-
-
-\- Set up the toolchain (Icarus Verilog + GTKWave) and ran the design from scratch
-
-\- Wrote a \*\*self-checking testbench\*\* (`tb/pipeline\_results\_tb.v`) that logs every write-back and checks the final register values (PASS/FAIL)
-
-\- Analyzed the waveforms, including \*\*data forwarding\*\*, and documented the results
-
-\- Documented the architecture and the limitations found while reading the code
-
-
-
-\## Architecture
-
-
-
-| Stage | File |
-
+| Stage | Files |
 |---|---|
+| Instruction Fetch (IF) | `Fetch_Cycle.v`, `PC.v`, `PC_Adder.v`, `Instruction_Memory.v` |
+| Instruction Decode (ID) | `Decode_Cyle.v`, `Control_Unit_Top.v`, `Main_Decoder.v`, `ALU_Decoder.v`, `Register_File.v`, `Sign_Extend.v` |
+| Execute (EX) | `Execute_Cycle.v`, `ALU.v` |
+| Memory (MEM) | `Memory_Cycle.v`, `Data_Memory.v` |
+| Write-Back (WB) | `Writeback_Cycle.v` |
+| Forwarding unit | `Hazard_unit.v` |
+| Top level | `Pipeline_Top.v` |
 
-| Instruction Fetch (IF) | `Fetch\_Cycle.v`, `PC.v`, `PC\_Adder.v`, `Instruction\_Memory.v` |
+**Supported instructions:** R-type (add, sub, slt, or, and), `addi`, `lw`, `sw`, and `beq`.
 
-| Instruction Decode (ID) | `Decode\_Cyle.v`, `Control\_Unit\_Top.v`, `Main\_Decoder.v`, `ALU\_Decoder.v`, `Register\_File.v`, `Sign\_Extend.v` |
+## Hazard handling
 
-| Execute (EX) | `Execute\_Cycle.v`, `ALU.v` |
+| Hazard | Example | Solution |
+|---|---|---|
+| Data (read after write) | `add x7,x5,x6` right after the instructions that write x5, x6 | Forwarding from the MEM and WB stages to EX (original design) |
+| Data, 3 instructions apart | Decode reads a register that write-back is writing in the same cycle | Register file **write-through** (my fix) |
+| Load-use | `lw x6` followed immediately by `add x7,x6,x6` | **One-cycle stall**: PC and IF/ID hold, a bubble enters EX (my addition) |
+| Control | Taken `beq` | **Flush** of the two wrong-path instructions, 2-cycle penalty (my addition) |
 
-| Memory (MEM) | `Memory\_Cycle.v`, `Data\_Memory.v` |
+## Changes to the original design
 
-| Write-Back (WB) | `Writeback\_Cycle.v` |
+| File | Change |
+|---|---|
+| `rtl/Sign_Extend.v` | Bug fix: added the B-type (branch) immediate. Before, `ImmSrc = 10` returned 0, so a taken `beq` jumped to `PC + 0`. |
+| `rtl/Register_File.v` | Bug fix: write-through (WB to ID bypass). Before, decode read stale data when write-back wrote the same register in the same cycle, and forwarding did not cover it. |
+| `rtl/Fetch_Cycle.v`, `rtl/Decode_Cyle.v`, `rtl/Pipeline_Top.v` | Branch flush (`PCSrcE` clears IF/ID and ID/EX) and load-use stall (`StallD` holds the PC and IF/ID and inserts a bubble into ID/EX). |
 
-| Hazard handling | `Hazard\_unit.v` |
+## Tests
 
-| Top level | `Pipeline\_Top.v` |
+Each test has its own program (`memfile.hex`) and testbench. Run each one from its own folder, because `Instruction_Memory.v` loads `memfile.hex` by relative path.
 
-
-
-\*\*Supported instructions (from the decoder):\*\* R-type (add, sub, slt, or, and), I-type ALU (addi), `lw`, `sw`, and `beq` decoding.
-
-
-
-\*\*Hazard handling:\*\* data forwarding only (from the MEM and WB stages to the EX stage). There is no stall or flush logic.
-
-
-
-\*\*Known limitations (found while reading the code):\*\*
-
-\- `Sign\_Extend.v` only handles I-type and S-type immediates, so the branch immediate (`ImmSrc = 10`) is not generated. Branches are therefore not verified here.
-
-\- No load-use stall and no branch flush.
-
-
-
-\## Test program
-
-
-
-`sim/memfile.hex` holds a 6-instruction program:
-
-
-
-| # | Hex | Instruction | Expected result |
-
+| Test | Folder | Testbench | What it checks |
 |---|---|---|---|
+| Basic and forwarding | `sim` | `tb/pipeline_results_tb.v` | 6-instruction program, forwarding, x5 to x10 |
+| Branch (`beq`) | `sim/branch_test` | `tb/branch_tb.v` | Taken and not-taken `beq`, B-type immediate, write-through |
+| Branch flush | `sim/flush_test` | `tb/flush_tb.v` | Wrong-path instructions behind a taken `beq` must not write registers (no NOP padding) |
+| Load-use stall | `sim/stall_test` | `tb/stall_tb.v` | A dependent instruction right after a `lw` gets the loaded value |
 
+The flush and stall tests fail on the unmodified pipeline and pass with the fixes:
+
+- Flush test without the flush: `x11 = 11` and `x12 = 12` (expected 1), because the wrong-path instructions executed.
+- Stall test without the stall: `x7 = 0` and `x10 = 5` (expected 10), because the `add` used the load address instead of the loaded data.
+
+### Basic test program
+
+| # | Hex | Instruction | Expected |
+|---|---|---|---|
 | 1 | `00500293` | `addi x5, x0, 5` | x5 = 5 |
-
 | 2 | `00300313` | `addi x6, x0, 3` | x6 = 3 |
-
-| 3 | `006283B3` | `add x7, x5, x6` | x7 = 8 (needs forwarding) |
-
+| 3 | `006283B3` | `add x7, x5, x6` | x7 = 8 (forwarding) |
 | 4 | `00002403` | `lw x8, 0(x0)` | x8 = 0 |
-
 | 5 | `00100493` | `addi x9, x0, 1` | x9 = 1 |
+| 6 | `00940533` | `add x10, x8, x9` | x10 = 1 (forwarding) |
 
-| 6 | `00940533` | `add x10, x8, x9` | x10 = 1 (needs forwarding) |
+## How to simulate
 
-
-
-\## How to simulate
-
-
-
-Tools: \[Icarus Verilog](https://bleyer.org/icarus/) and GTKWave.
-
-
-
-```
-
+Tools: [Icarus Verilog](https://bleyer.org/icarus/) and GTKWave. Commands for Windows PowerShell, from the repository root:
 cd sim
+iverilog -I ..\rtl -o pipeline_results.vvp ..\tb\pipeline_results_tb.v ..\rtl\Pipeline_Top.v
+vvp pipeline_results.vvp > sim_log.txt
 
-iverilog -I ..\\rtl -o pipeline\_results.vvp ..\\tb\\pipeline\_results\_tb.v ..\\rtl\\Pipeline\_Top.v
+cd branch_test
+iverilog -I ....\rtl -o branch.vvp ....\tb\branch_tb.v ....\rtl\Pipeline_Top.v
+vvp branch.vvp > sim_log.txt
 
-vvp pipeline\_results.vvp > sim\_log.txt
+cd ..\flush_test
+iverilog -I ....\rtl -o flush.vvp ....\tb\flush_tb.v ....\rtl\Pipeline_Top.v
+vvp flush.vvp > sim_log.txt
 
-gtkwave dump.vcd pipeline.gtkw
+cd ..\stall_test
+iverilog -I ....\rtl -o stall.vvp ....\tb\stall_tb.v ....\rtl\Pipeline_Top.v
+vvp stall.vvp > sim_log.txt
 
-```
+Each run ends with `==== RESULT: ALL TESTS PASSED ====`. The waveform is written to `dump.vcd` and can be opened with `gtkwave dump.vcd`. A `$readmemh` warning from `Instruction_Memory.v` is harmless.
 
+## Results
 
+Logs: `sim/sim_log.txt`, `sim/branch_test/sim_log.txt`, `sim/flush_test/sim_log.txt`, `sim/stall_test/sim_log.txt`.
 
-Run from the `sim` folder, because `Instruction\_Memory.v` loads `memfile.hex` by relative path.
+Basic test, all six register checks pass:
 
+![Terminal result](sim/waveforms/terminal_result.png)
 
+Full waveform of the basic test (write-back values and forwarding controls):
 
-\## Results
+![Full waveform](sim/waveforms/full_waveform.png)
 
+Forwarding in action: `ForwardAE`/`ForwardBE` become non-zero when `add x7` and `add x10` execute:
 
+![Forwarding](sim/waveforms/forwarding.png)
 
-The log is in `sim/sim\_log.txt`. All six register checks pass:
-
-
-
-```
-
-x5 = 5, x6 = 3, x7 = 8, x8 = 0, x9 = 1, x10 = 1
-
-==== RESULT: ALL TESTS PASSED ====
-
-```
-
-
-
-Waveforms (`sim/waveforms/`):
-
-
-
-!\[Terminal result](sim/waveforms/terminal\_result.png)
-
-!\[Full waveform](sim/waveforms/full\_waveform.png)
-
-!\[Forwarding](sim/waveforms/forwarding.png)
-
-
-
-\## License
-
-
-
-Apache License 2.0 (see `LICENSE`). Original design copyright 2023 MERL-DSU.
-
-
-## Additional simulation screenshots
+Additional waveform screenshots:
 
 **Pipeline overview**: clock, reset, PC and the six fetched instructions (`InstrD`)
 
@@ -171,6 +122,17 @@ Apache License 2.0 (see `LICENSE`). Original design copyright 2023 MERL-DSU.
 
 ![Signal selection](sim/waveforms/waveforms_2.png)
 
-**Decode to write-back stages**: register destinations (`RDW`) and written values (`ResultW`)
+**Decode to write-back stages**: destination registers (`RDW`) and written values (`ResultW`)
 
 ![Decode to write-back](sim/waveforms/waveforms_3.png)
+
+## Known limitations
+
+- Only `lw`, `sw`, R-type (add, sub, slt, or, and), `addi` and `beq` are supported and tested. Other branch types, jumps, `lui` and `auipc` are not.
+- A taken branch costs 2 cycles (resolved in the EX stage).
+- Data memory is indexed directly by the byte address, so only aligned word accesses are meaningful.
+- Verified in simulation only (Icarus Verilog). No FPGA synthesis results yet.
+
+## License
+
+Apache License 2.0 (see `LICENSE`). Original design copyright 2023 MERL-DSU.

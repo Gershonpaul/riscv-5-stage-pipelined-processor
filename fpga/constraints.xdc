@@ -1,7 +1,7 @@
 # Basys 3 (Artix-7 xc7a35tcpg236-1) constraints
-# Target clock: 20 ns (50 MHz). The board clock is 100 MHz, so a real board run would add a clock divider.
+# Target clock: 10 ns (100 MHz), the Basys 3 board clock.
 set_property -dict { PACKAGE_PIN W5  IOSTANDARD LVCMOS33 } [get_ports clk]
-create_clock -period 20.000 -name sys_clk [get_ports clk]
+create_clock -period 10.000 -name sys_clk [get_ports clk]
 
 set_property -dict { PACKAGE_PIN U18 IOSTANDARD LVCMOS33 } [get_ports btn_reset]
 

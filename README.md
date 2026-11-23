@@ -16,6 +16,7 @@ All original copyright headers are kept. Every change I made is marked with a `M
 - Found and fixed **two bugs** in the original core (branch immediate, register file write-through)
 - Added **branch flush** and **load-use stall**
 - Analyzed the waveforms, including data forwarding, and documented the design and its limitations
+- Synthesized and implemented the core in Vivado (Artix-7) and analyzed utilization and timing: 100 MHz timing met
 
 ## Architecture
 
@@ -46,7 +47,7 @@ All original copyright headers are kept. Every change I made is marked with a `M
 |---|---|
 | `rtl/Sign_Extend.v` | Bug fix: added the B-type (branch) immediate. Before, `ImmSrc = 10` returned 0, so a taken `beq` jumped to `PC + 0`. |
 | `rtl/Register_File.v` | Bug fix: write-through (WB to ID bypass). Before, decode read stale data when write-back wrote the same register in the same cycle, and forwarding did not cover it. |
-| `rtl/Fetch_Cycle.v`, `rtl/Decode_Cyle.v`, `rtl/Pipeline_Top.v` | Branch flush (`PCSrcE` clears IF/ID and ID/EX) and load-use stall (`StallD` holds the PC and IF/ID and inserts a bubble into ID/EX). |
+| `rtl/Fetch_Cycle.v`, `rtl/Decode_Cyle.v`, `rtl/Pipeline_Top.v` | Branch flush (`PCSrcE` clears IF/ID and ID/EX) and load-use stall (`StallD` holds the PC and IF/ID and inserts a bubble into ID/EX). Both are synchronous clears kept outside the asynchronous reset, so they synthesize correctly. `Pipeline_top` also has a new `Result_out` port so the synthesis tool keeps the logic. |
 
 ## Tests
 
@@ -126,12 +127,40 @@ Additional waveform screenshots:
 
 ![Decode to write-back](sim/waveforms/waveforms_3.png)
 
+## FPGA synthesis and timing (Vivado)
+
+The core was synthesized and implemented with Vivado (2026.x) for the Artix-7 on the Digilent Basys 3 (`xc7a35tcpg236-1`).
+
+| File | Purpose |
+|---|---|
+| `fpga/fpga_top.v` | Wrapper: button to active-low reset, write-back result XOR-folded onto 16 LEDs so the tool keeps the whole core |
+| `fpga/constraints.xdc` | 100 MHz clock constraint and Basys 3 pins |
+| `fpga/run_vivado.tcl` | Batch flow: synthesis, place and route, reports |
+| `fpga/reports/` | Utilization and timing reports (`*_20ns.rpt` is an earlier run at a 20 ns target) |
+
+Run from the repository root: `vivado -mode batch -source fpga/run_vivado.tcl`
+
+| Resource | Used | Available | Utilization |
+|---|---|---|---|
+| Slice LUTs | 855 | 20,800 | 4.11 % |
+| LUT as Logic | 299 | 20,800 | 1.44 % |
+| LUT as Memory (distributed RAM) | 556 | 9,600 | 5.79 % |
+| Slice registers | 281 | 41,600 | 0.68 % |
+| Block RAM / DSP | 0 / 0 | 50 / 90 | 0 % |
+
+**Timing at a 10 ns (100 MHz) clock constraint:** setup slack (WNS) +2.337 ns, hold slack (WHS) +0.058 ns, 0 failing endpoints out of 5921. All user-specified timing constraints are met. The slowest path is about 7.7 ns, which suggests a maximum clock of roughly 130 MHz (an estimate from the slack, not a guaranteed limit).
+
+Notes:
+- The instruction memory holds only the 6-instruction program from `sim/memfile.hex`. The results describe this configuration.
+- Most of the "LUT as Memory" comes from the 1024-word data memory and the register file, which are asynchronous-read memories built from distributed RAM. Only 299 LUTs are processor logic.
+- The design was not tested on a physical board.
+
 ## Known limitations
 
 - Only `lw`, `sw`, R-type (add, sub, slt, or, and), `addi` and `beq` are supported and tested. Other branch types, jumps, `lui` and `auipc` are not.
 - A taken branch costs 2 cycles (resolved in the EX stage).
 - Data memory is indexed directly by the byte address, so only aligned word accesses are meaningful.
-- Verified in simulation only (Icarus Verilog). No FPGA synthesis results yet.
+- Verified in simulation (Icarus Verilog) and synthesized in Vivado, but not yet run on a physical board.
 
 ## License
 

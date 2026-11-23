@@ -1,0 +1,37 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2026 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2026.2 (win64) Build 6713330 Sat Nov 07 01:26:36 MST 2026
+| Date         : Mon Nov 23 09:26:59 2026
+| Host         : NISSY-ASHI running 64-bit major release  (build 9200)
+| Command      : report_utilization -hierarchical -file D:/riscv-5-stage-pipelined-processor/fpga/reports/utilization_hierarchical.rpt
+| Design       : fpga_top
+| Device       : xc7a35tcpg236-1
+| Speed File   : -1
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Utilization Design Information
+
+Table of Contents
+-----------------
+1. Utilization by Hierarchy
+
+1. Utilization by Hierarchy
+---------------------------
+
++----------------+---------------+------------+------------+---------+------+-----+--------+--------+------------+
+|    Instance    |     Module    | Total LUTs | Logic LUTs | LUTRAMs | SRLs | FFs | RAMB36 | RAMB18 | DSP Blocks |
++----------------+---------------+------------+------------+---------+------+-----+--------+--------+------------+
+| fpga_top       |         (top) |        855 |        299 |     556 |    0 | 281 |      0 |      0 |          0 |
+|   (fpga_top)   |         (top) |          0 |          0 |       0 |    0 |  16 |      0 |      0 |          0 |
+|   core         |  Pipeline_top |        855 |        299 |     556 |    0 | 265 |      0 |      0 |          0 |
+|     Decode     |  decode_cycle |         97 |         53 |      44 |    0 |  82 |      0 |      0 |          0 |
+|       (Decode) |  decode_cycle |         53 |         53 |       0 |    0 |  82 |      0 |      0 |          0 |
+|     Execute    | execute_cycle |         41 |         41 |       0 |    0 |  97 |      0 |      0 |          0 |
+|     Memory     |  memory_cycle |        695 |        183 |     512 |    0 |  70 |      0 |      0 |          0 |
+|       (Memory) |  memory_cycle |        135 |        135 |       0 |    0 |  70 |      0 |      0 |          0 |
+|       dmem     |   Data_Memory |        560 |         48 |     512 |    0 |   0 |      0 |      0 |          0 |
++----------------+---------------+------------+------------+---------+------+-----+--------+--------+------------+
+* Note: The sum of lower-level cells may be larger than their parent cells total, due to cross-hierarchy LUT combining
+
+

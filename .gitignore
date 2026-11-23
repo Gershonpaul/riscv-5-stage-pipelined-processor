@@ -8,3 +8,7 @@
 *.runs/
 *.sim/
 *.hw/
+fpga/reports/memfile.hex
+fpga/reports/vivado_featurestore.json
+fpga/reports/clockInfo.txt
+vivado_*.backup.*

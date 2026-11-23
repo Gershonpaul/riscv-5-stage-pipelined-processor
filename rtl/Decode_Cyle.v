@@ -80,7 +80,7 @@ module decode_cycle(clk, rst, InstrD, PCD, PCPlus4D, RegWriteW, RDW, ResultW, Re
 
     // Declaring Register Logic
     always @(posedge clk or negedge rst) begin
-        if(rst == 1'b0 || PCSrcE == 1'b1 || StallD == 1'b1) begin
+        if(rst == 1'b0) begin
             RegWriteD_r <= 1'b0;
             ALUSrcD_r <= 1'b0;
             MemWriteD_r <= 1'b0;
@@ -92,6 +92,23 @@ module decode_cycle(clk, rst, InstrD, PCD, PCPlus4D, RegWriteW, RDW, ResultW, Re
             Imm_Ext_D_r <= 32'h00000000;
             RD_D_r <= 5'h00;
             PCD_r <= 32'h00000000; 
+            PCPlus4D_r <= 32'h00000000;
+            RS1_D_r <= 5'h00;
+            RS2_D_r <= 5'h00;
+        end
+        else if(PCSrcE == 1'b1 || StallD == 1'b1) begin
+            // Modified by Gershon Paul Kolanti, Nov 2026: synchronous bubble (branch flush or load-use stall)
+            RegWriteD_r <= 1'b0;
+            ALUSrcD_r <= 1'b0;
+            MemWriteD_r <= 1'b0;
+            ResultSrcD_r <= 1'b0;
+            BranchD_r <= 1'b0;
+            ALUControlD_r <= 3'b000;
+            RD1_D_r <= 32'h00000000;
+            RD2_D_r <= 32'h00000000;
+            Imm_Ext_D_r <= 32'h00000000;
+            RD_D_r <= 5'h00;
+            PCD_r <= 32'h00000000;
             PCPlus4D_r <= 32'h00000000;
             RS1_D_r <= 5'h00;
             RS2_D_r <= 5'h00;

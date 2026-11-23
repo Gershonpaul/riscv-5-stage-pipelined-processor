@@ -29,10 +29,11 @@
 `include "Hazard_unit.v"
 
 
-module Pipeline_top(clk, rst);
+module Pipeline_top(clk, rst, Result_out);
 
     // Declaration of I/O
     input clk, rst;
+    output [31:0] Result_out; // Modified by Gershon Paul Kolanti: observable output for FPGA synthesis
 
     // Declaration of Interim Wires
     wire PCSrcE, RegWriteW, RegWriteE, ALUSrcE, MemWriteE, ResultSrcE, BranchE, RegWriteM, MemWriteM, ResultSrcM, ResultSrcW;
@@ -52,6 +53,8 @@ module Pipeline_top(clk, rst);
     assign StallD = (ResultSrcE == 1'b1) && (RD_E != 5'h00) &&
                     ((RD_E == InstrD[19:15]) || ((RD_E == InstrD[24:20]) && (UsesRs2D == 1'b1)));
     
+
+    assign Result_out = ResultW;
 
     // Module Initiation
     // Fetch Stage
